@@ -10,6 +10,7 @@
 ==================================================
 """
 from dateutil.parser import parse
+from dateutil.rrule import rrule, SECONDLY
 
 import openpyxl
 import pandas as pd
@@ -29,6 +30,7 @@ def statistics(path_log, path_user, path_out, column_name):
     ws_re = wb_one_re.create_sheet(title="统计结果")
     ws_re.append(['姓名', column_name, '持续时间'])
     for name in df_user['fullname']:
+        print("正在处理: "+name+"  ...")
         df_one = df_log.loc[lambda df:df['用户全名'] == name, ]  # str(filter(str.isdigit, name))
         ws_log = wb_one_log.create_sheet(title=name)
 
@@ -37,8 +39,8 @@ def statistics(path_log, path_user, path_out, column_name):
             t2 = df_one['时间'][1:].values
             time_sum = parse(t1[0])-parse(t1[0])
             for j in range(t1.size):
-                if (parse(t1[j])-parse(t2[j])).seconds < (25*60):
-                    time_sum = time_sum + parse(t1[j])-parse(t2[j])
+                if rrule(freq=SECONDLY, dtstart=parse(t2[j]), until=parse(t1[j])).count() < (25*60+1):
+                    time_sum = time_sum + (parse(t1[j])-parse(t2[j]))
             num_col_name = df_one.loc[lambda df:df['事件名称'] == column_name, ].shape[0]
             ws_re.append([name, num_col_name, time_sum])
         else:
@@ -49,12 +51,13 @@ def statistics(path_log, path_user, path_out, column_name):
 
         wb_one_log.save(path_out + "one_log.xlsx")
     wb_one_re.save(path_out + "one_re.xlsx")
+    print("----处理完成-----")
 
 
 if __name__ == "__main__":
-    path_log = "./data/input/logs_计算机网络21秋_日志.csv"
-    path_user = "./data/input/计算机网络选课名单.xlsx"
-    path_out = "./data/output/"
-    column_name = "查看了课程"
+    path_log = "./data/input/logs_计算机网络21秋_日志.csv"       # 日志路径
+    path_user = "./data/input/计算机网络选课名单.xlsx"           # 选课名单
+    path_out = "./data/output/"                              # 输出路径
+    column_name = "查看了课程"                                 # 统计字段
 
     statistics(path_log, path_user, path_out, column_name)
